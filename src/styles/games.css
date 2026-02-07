@@ -1,0 +1,478 @@
+/* === Card Match Game === */
+.card-grid {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.card-grid-easy { grid-template-columns: repeat(3, 1fr); }
+.card-grid-normal { grid-template-columns: repeat(4, 1fr); }
+.card-grid-hard { grid-template-columns: repeat(4, 1fr); }
+
+.game-card {
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  cursor: pointer;
+  transition: transform 0.3s ease, background-color 0.3s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  border: 3px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.game-card-hidden {
+  background: linear-gradient(135deg, var(--color-sky), var(--color-mint));
+  border-color: transparent;
+}
+
+.game-card-hidden::after {
+  content: '?';
+  font-size: 32px;
+  color: white;
+  font-weight: 700;
+}
+
+.game-card-revealed {
+  background: var(--color-surface);
+  transform: scale(1.02);
+}
+
+.game-card-matched {
+  background: #E8F8EA;
+  border-color: var(--color-success);
+  pointer-events: none;
+}
+
+.game-card:active {
+  transform: scale(0.95);
+}
+
+/* === Number Sequence Game === */
+.sequence-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  padding: var(--spacing-xl) var(--spacing-md);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.sequence-number {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  min-width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F0F4FF;
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+}
+
+.sequence-blank {
+  background: #FFF0EB;
+  border: 3px dashed var(--color-coral);
+  color: var(--color-coral);
+  min-width: 70px;
+}
+
+.sequence-arrow {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-light);
+}
+
+.answer-options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-md);
+}
+
+.answer-btn {
+  min-height: 70px;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: 3px solid var(--color-border);
+  transition: all var(--transition);
+}
+
+.answer-btn:hover {
+  border-color: var(--color-sky);
+  background: #F0F8FF;
+}
+
+.answer-btn:active {
+  transform: scale(0.97);
+}
+
+.answer-btn.correct {
+  border-color: var(--color-success);
+  background: #E8F8EA;
+  color: #2D7A3A;
+}
+
+.answer-btn.wrong {
+  border-color: var(--color-error);
+  background: #FFE8E8;
+  color: #C44D4D;
+  animation: shake 0.3s ease;
+}
+
+/* === Color Find Game === */
+.color-grid {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.color-grid-easy { grid-template-columns: repeat(3, 1fr); }
+.color-grid-normal { grid-template-columns: repeat(4, 1fr); }
+.color-grid-hard { grid-template-columns: repeat(5, 1fr); }
+
+.color-cell {
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: transform var(--transition);
+  -webkit-tap-highlight-color: transparent;
+  border: 3px solid transparent;
+}
+
+.color-cell:hover {
+  transform: scale(1.05);
+}
+
+.color-cell:active {
+  transform: scale(0.95);
+}
+
+.color-cell.found {
+  border-color: var(--color-success);
+  box-shadow: 0 0 0 3px rgba(107, 203, 119, 0.3);
+}
+
+.color-cell.wrong-pick {
+  animation: shake 0.3s ease;
+}
+
+/* === Math Challenge Game === */
+.math-problem {
+  text-align: center;
+  padding: var(--spacing-2xl);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.math-expression {
+  font-size: var(--font-size-3xl);
+  font-weight: 800;
+  color: var(--color-text);
+  margin-bottom: var(--spacing-md);
+}
+
+.math-equals {
+  font-size: var(--font-size-2xl);
+  color: var(--color-text-light);
+}
+
+.math-input-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.math-input {
+  width: 150px;
+  height: 70px;
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  text-align: center;
+  border: 3px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  transition: border-color var(--transition);
+}
+
+.math-input:focus {
+  outline: none;
+  border-color: var(--color-coral);
+}
+
+/* Numpad for mobile */
+.numpad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-sm);
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.numpad-btn {
+  height: 64px;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  transition: all var(--transition);
+}
+
+.numpad-btn:hover {
+  background: #F0F4FF;
+}
+
+.numpad-btn:active {
+  transform: scale(0.95);
+  background: #E0E8FF;
+}
+
+.numpad-btn-submit {
+  background: var(--color-coral);
+  color: white;
+  border-color: transparent;
+}
+
+.numpad-btn-submit:hover {
+  background: #ff7a55;
+}
+
+.numpad-btn-delete {
+  background: #FFE8E8;
+  color: var(--color-error);
+  border-color: transparent;
+}
+
+/* === Word Chain Game === */
+.word-chain-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.word-history {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--spacing-md);
+  min-height: 200px;
+  max-height: 400px;
+}
+
+.word-bubble {
+  display: inline-block;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
+  animation: slideUp 0.3s ease;
+}
+
+.word-bubble-computer {
+  background: #F0F4FF;
+  color: var(--color-text);
+}
+
+.word-bubble-user {
+  background: var(--color-coral);
+  color: white;
+  margin-left: auto;
+}
+
+.word-row {
+  display: flex;
+  margin-bottom: var(--spacing-xs);
+}
+
+.word-row-computer {
+  justify-content: flex-start;
+}
+
+.word-row-user {
+  justify-content: flex-end;
+}
+
+.word-input-area {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.word-input {
+  flex: 1;
+  height: 60px;
+  padding: 0 var(--spacing-lg);
+  font-size: var(--font-size-lg);
+  border: 3px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  transition: border-color var(--transition);
+}
+
+.word-input:focus {
+  outline: none;
+  border-color: var(--color-coral);
+}
+
+.word-hint {
+  font-size: var(--font-size-base);
+  color: var(--color-text-light);
+  text-align: center;
+  padding: var(--spacing-sm);
+}
+
+/* === Game Select Cards === */
+.game-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.game-select-card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform var(--transition), box-shadow var(--transition);
+  -webkit-tap-highlight-color: transparent;
+  text-align: left;
+}
+
+.game-select-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.game-select-card:active {
+  transform: scale(0.98);
+}
+
+.game-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.game-info {
+  flex: 1;
+}
+
+.game-name {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.game-desc {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-light);
+}
+
+.game-arrow {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-light);
+}
+
+/* === Home Screen === */
+.home-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--spacing-xl);
+  padding: var(--spacing-2xl) 0;
+}
+
+.home-logo {
+  font-size: 80px;
+  line-height: 1;
+}
+
+.home-title {
+  font-size: var(--font-size-3xl);
+  font-weight: 800;
+  color: var(--color-coral);
+}
+
+.home-subtitle {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-light);
+  margin-top: var(--spacing-xs);
+}
+
+.home-stats {
+  display: flex;
+  gap: var(--spacing-xl);
+  padding: var(--spacing-lg);
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: var(--font-size-2xl);
+  font-weight: 800;
+  color: var(--color-coral);
+}
+
+.stat-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-light);
+}
+
+/* === Game Container === */
+.game-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.game-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+.game-content {
+  flex: 1;
+}
+
+.game-feedback {
+  margin-top: var(--spacing-md);
+  min-height: 60px;
+}
