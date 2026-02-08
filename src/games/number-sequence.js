@@ -1,7 +1,8 @@
 import { renderHeader } from '../components/header.js';
 import { showModal } from '../components/modal.js';
 import { shuffle, randInt, getEncouragement, getRetryMessage } from '../utils/helpers.js';
-import { recordPlay } from '../utils/state.js';
+import { recordPlay, getTotalPlays } from '../utils/state.js';
+import { track } from '../utils/analytics.js';
 
 const DIFFICULTY_CONFIG = {
   easy: { rounds: 5, maxStep: 5, ops: ['add'] },
@@ -22,6 +23,8 @@ export function render(container, difficulty = 'easy') {
 
   renderHeader(container, '숫자 잇기', '#/games');
 
+  track('game_start', { game_id: 'number-sequence', difficulty: currentDifficulty });
+
   const diffWrap = document.createElement('div');
   diffWrap.className = 'difficulty-selector';
   ['easy', 'normal', 'hard'].forEach(d => {
@@ -29,6 +32,7 @@ export function render(container, difficulty = 'easy') {
     btn.className = `difficulty-btn ${d === currentDifficulty ? 'active' : ''}`;
     btn.textContent = d === 'easy' ? '쉬움' : d === 'normal' ? '보통' : '어려움';
     btn.addEventListener('click', () => {
+      track('difficulty_change', { game_id: 'number-sequence', difficulty: d });
       container.innerHTML = '';
       render(container, d);
     });
@@ -186,6 +190,7 @@ function showFeedback(msg, type) {
 function onFinish() {
   const finalScore = Math.round((score / totalRounds) * 100);
   recordPlay('number-sequence', currentDifficulty, finalScore);
+  track('game_complete', { game_id: 'number-sequence', difficulty: currentDifficulty, score: finalScore, total_plays: getTotalPlays() });
 
   showModal({
     icon: score === totalRounds ? '🏆' : '⭐',
@@ -196,6 +201,7 @@ function onFinish() {
         label: '다시 하기',
         class: 'btn-primary',
         action: () => {
+          track('game_replay', { game_id: 'number-sequence', difficulty: currentDifficulty });
           const app = document.getElementById('app');
           app.innerHTML = '';
           render(app, currentDifficulty);
@@ -204,7 +210,10 @@ function onFinish() {
       {
         label: '다른 게임 하기',
         class: 'btn-secondary',
-        action: () => { location.hash = '#/games'; },
+        action: () => {
+          track('game_exit', { game_id: 'number-sequence' });
+          location.hash = '#/games';
+        },
       },
     ],
   });

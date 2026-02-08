@@ -5,6 +5,8 @@ import * as numberSequence from './games/number-sequence.js';
 import * as colorFind from './games/color-find.js';
 import * as mathChallenge from './games/math-challenge.js';
 import * as wordChain from './games/word-chain.js';
+import { initAnalytics, track } from './utils/analytics.js';
+import { getTotalPlays } from './utils/state.js';
 
 const GAMES = {
   'card-match': cardMatch,
@@ -33,15 +35,18 @@ function navigate() {
 
   // Route matching
   if (hash === '#/' || hash === '' || hash === '#') {
+    track('screen_view', { screen_name: 'home' });
     home.render(app);
     currentCleanup = home.cleanup;
   } else if (hash === '#/games') {
+    track('screen_view', { screen_name: 'game_select' });
     gameSelect.render(app);
     currentCleanup = gameSelect.cleanup;
   } else if (hash.startsWith('#/play/')) {
     const gameId = hash.replace('#/play/', '');
     const gameModule = GAMES[gameId];
     if (gameModule) {
+      track('screen_view', { screen_name: `play_${gameId}` });
       gameModule.render(app);
       currentCleanup = gameModule.cleanup;
     } else {
@@ -60,6 +65,10 @@ function navigate() {
     location.hash = '#/';
   }
 }
+
+// Initialize analytics
+initAnalytics();
+track('app_open', { total_plays: getTotalPlays() });
 
 // Listen for hash changes
 window.addEventListener('hashchange', navigate);

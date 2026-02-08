@@ -1,5 +1,6 @@
 import { renderHeader } from '../components/header.js';
 import { getGameStats } from '../utils/state.js';
+import { track } from '../utils/analytics.js';
 
 const GAMES = [
   {
@@ -66,6 +67,7 @@ export function render(container) {
       <div class="game-arrow">→</div>
     `;
     card.addEventListener('click', () => {
+      track('game_select', { game_id: game.id, game_name: game.name });
       location.hash = `#/play/${game.id}`;
     });
     list.appendChild(card);

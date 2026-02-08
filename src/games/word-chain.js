@@ -1,7 +1,8 @@
 import { renderHeader } from '../components/header.js';
 import { showModal } from '../components/modal.js';
 import { randomPick } from '../utils/helpers.js';
-import { recordPlay } from '../utils/state.js';
+import { recordPlay, getTotalPlays } from '../utils/state.js';
+import { track } from '../utils/analytics.js';
 
 // Korean word dictionary for word chain game
 // Organized by starting character (초성 + 중성 + 종성 → 첫 글자)
@@ -119,6 +120,8 @@ export function render(container, difficulty = 'easy') {
 
   renderHeader(container, '끝말잇기', '#/games');
 
+  track('game_start', { game_id: 'word-chain', difficulty: currentDifficulty });
+
   const diffWrap = document.createElement('div');
   diffWrap.className = 'difficulty-selector';
   ['easy', 'normal', 'hard'].forEach(d => {
@@ -126,6 +129,7 @@ export function render(container, difficulty = 'easy') {
     btn.className = `difficulty-btn ${d === currentDifficulty ? 'active' : ''}`;
     btn.textContent = d === 'easy' ? '쉬움' : d === 'normal' ? '보통' : '어려움';
     btn.addEventListener('click', () => {
+      track('difficulty_change', { game_id: 'word-chain', difficulty: d });
       container.innerHTML = '';
       render(container, d);
     });
@@ -296,6 +300,7 @@ function showFeedback(msg, type) {
 function onPlayerWin() {
   const finalScore = 100;
   recordPlay('word-chain', currentDifficulty, finalScore);
+  track('game_complete', { game_id: 'word-chain', difficulty: currentDifficulty, score: finalScore, total_plays: getTotalPlays() });
 
   showModal({
     icon: '🏆',
@@ -306,6 +311,7 @@ function onPlayerWin() {
         label: '다시 하기',
         class: 'btn-primary',
         action: () => {
+          track('game_replay', { game_id: 'word-chain', difficulty: currentDifficulty });
           const app = document.getElementById('app');
           app.innerHTML = '';
           render(app, currentDifficulty);
@@ -314,7 +320,10 @@ function onPlayerWin() {
       {
         label: '다른 게임 하기',
         class: 'btn-secondary',
-        action: () => { location.hash = '#/games'; },
+        action: () => {
+          track('game_exit', { game_id: 'word-chain' });
+          location.hash = '#/games';
+        },
       },
     ],
   });
@@ -323,6 +332,7 @@ function onPlayerWin() {
 function onComplete() {
   const finalScore = Math.round((turnCount / maxTurns) * 100);
   recordPlay('word-chain', currentDifficulty, finalScore);
+  track('game_complete', { game_id: 'word-chain', difficulty: currentDifficulty, score: finalScore, total_plays: getTotalPlays() });
 
   showModal({
     icon: '⭐',
@@ -333,6 +343,7 @@ function onComplete() {
         label: '다시 하기',
         class: 'btn-primary',
         action: () => {
+          track('game_replay', { game_id: 'word-chain', difficulty: currentDifficulty });
           const app = document.getElementById('app');
           app.innerHTML = '';
           render(app, currentDifficulty);
@@ -341,7 +352,10 @@ function onComplete() {
       {
         label: '다른 게임 하기',
         class: 'btn-secondary',
-        action: () => { location.hash = '#/games'; },
+        action: () => {
+          track('game_exit', { game_id: 'word-chain' });
+          location.hash = '#/games';
+        },
       },
     ],
   });

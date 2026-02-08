@@ -1,7 +1,8 @@
 import { renderHeader } from '../components/header.js';
 import { showModal } from '../components/modal.js';
 import { shuffle, getEncouragement } from '../utils/helpers.js';
-import { recordPlay } from '../utils/state.js';
+import { recordPlay, getTotalPlays } from '../utils/state.js';
+import { track } from '../utils/analytics.js';
 
 const EMOJI_POOL = ['🍎', '🍊', '🍋', '🍇', '🍓', '🌸', '🌻', '⭐', '🌈', '🎵', '🐶', '🐱', '🐸', '🦋', '🐢', '🐘'];
 
@@ -28,6 +29,8 @@ export function render(container, difficulty = 'easy') {
 
   renderHeader(container, '카드 짝 맞추기', '#/games');
 
+  track('game_start', { game_id: 'card-match', difficulty: currentDifficulty });
+
   // Difficulty selector
   const diffWrap = document.createElement('div');
   diffWrap.className = 'difficulty-selector';
@@ -36,6 +39,7 @@ export function render(container, difficulty = 'easy') {
     btn.className = `difficulty-btn ${d === currentDifficulty ? 'active' : ''}`;
     btn.textContent = d === 'easy' ? '쉬움' : d === 'normal' ? '보통' : '어려움';
     btn.addEventListener('click', () => {
+      track('difficulty_change', { game_id: 'card-match', difficulty: d });
       container.innerHTML = '';
       render(container, d);
     });
@@ -139,6 +143,7 @@ function showFeedback(msg, type) {
 function onWin() {
   const score = Math.max(100 - (moves - DIFFICULTY[currentDifficulty].pairs) * 5, 10);
   recordPlay('card-match', currentDifficulty, score);
+  track('game_complete', { game_id: 'card-match', difficulty: currentDifficulty, score, total_plays: getTotalPlays() });
 
   showModal({
     icon: '🎉',
@@ -149,6 +154,7 @@ function onWin() {
         label: '다시 하기',
         class: 'btn-primary',
         action: () => {
+          track('game_replay', { game_id: 'card-match', difficulty: currentDifficulty });
           const app = document.getElementById('app');
           app.innerHTML = '';
           render(app, currentDifficulty);
@@ -157,7 +163,10 @@ function onWin() {
       {
         label: '다른 게임 하기',
         class: 'btn-secondary',
-        action: () => { location.hash = '#/games'; },
+        action: () => {
+          track('game_exit', { game_id: 'card-match' });
+          location.hash = '#/games';
+        },
       },
     ],
   });
