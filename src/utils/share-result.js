@@ -122,13 +122,10 @@ export async function shareGameResult({
   encouragement,
 }) {
   const url = `${window.location.origin}${window.location.pathname}#/play/${gameId}/${difficulty}`;
-  const timeText = formatSeconds(timeSeconds);
-  const title = '두뇌훈련을 위한 모리모리';
-  const text = `${gameTitle} ${difficultyLabel(difficulty)} 기록 ${timeText}\n${encouragement}\n${title}\n${url}`;
 
   if (!navigator.share) {
     if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(url);
     }
     return { shared: false, fallback: true };
   }
@@ -137,9 +134,9 @@ export async function shareGameResult({
   const imageFile = imageBlob ? new File([imageBlob], 'morimori-record.png', { type: 'image/png' }) : null;
 
   if (imageFile && navigator.canShare?.({ files: [imageFile] })) {
-    await navigator.share({ title, text, url, files: [imageFile] });
+    await navigator.share({ url, files: [imageFile] });
   } else {
-    await navigator.share({ title, text, url });
+    await navigator.share({ url });
   }
 
   return { shared: true, fallback: false };
