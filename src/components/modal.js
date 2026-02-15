@@ -5,7 +5,7 @@
  * @param {string} options.thumbnail - image path
  * @param {string} options.title
  * @param {string} options.message
- * @param {Array<{label: string, class?: string, action: Function}>} options.buttons
+ * @param {Array<{label: string, class?: string, action?: Function, closeOnClick?: boolean}>} options.buttons
  * @returns {Function} close function
  */
 export function showModal({ icon, thumbnail, title, message, buttons = [] }) {
@@ -27,9 +27,10 @@ export function showModal({ icon, thumbnail, title, message, buttons = [] }) {
     const button = document.createElement('button');
     button.className = `btn ${btn.class || 'btn-primary'} btn-block`;
     button.textContent = btn.label;
-    button.addEventListener('click', () => {
-      close();
-      if (btn.action) btn.action();
+    button.addEventListener('click', async () => {
+      const closeOnClick = btn.closeOnClick !== false;
+      if (closeOnClick) close();
+      if (btn.action) await btn.action({ close });
     });
     actionsEl.appendChild(button);
   });

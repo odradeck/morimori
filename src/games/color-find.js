@@ -1,5 +1,5 @@
 import { renderHeader } from '../components/header.js';
-import { showModal } from '../components/modal.js';
+import { showGameResultModal } from '../components/game-result-modal.js';
 import { showToast } from '../components/toast.js';
 import { randInt, getEncouragement, getRetryMessage, formatSeconds } from '../utils/helpers.js';
 import { recordTimedPlay, getTotalPlays } from '../utils/state.js';
@@ -158,34 +158,28 @@ function onFinish() {
   const { currentBest, isBest } = recordTimedPlay('color-find', currentDifficulty, finalTime);
   track('game_complete', { game_id: 'color-find', difficulty: currentDifficulty, score: finalTime, total_plays: getTotalPlays() });
 
-  const pbMessage = isBest
-    ? '신기록을 달성했어요!'
-    : `개인 최고기록까지 ${formatSeconds(finalTime - currentBest)} 남았어요.`;
-
-  showModal({
-    icon: isBest ? '🏆' : '👁️',
-    title: '게임 완료!',
-    message: `최종 시간: ${formatSeconds(finalTime)}\n오답 ${wrongCount}회 (패널티 +${penaltySeconds}초)\n${pbMessage}`,
-    buttons: [
-      {
-        label: '다시 하기',
-        class: 'btn-primary',
-        action: () => {
-          track('game_replay', { game_id: 'color-find', difficulty: currentDifficulty });
-          const app = document.getElementById('app');
-          app.innerHTML = '';
-          render(app, currentDifficulty);
-        },
-      },
-      {
-        label: '다른 게임 하기',
-        class: 'btn-secondary',
-        action: () => {
-          track('game_exit', { game_id: 'color-find' });
-          location.hash = '#/games';
-        },
-      },
+  showGameResultModal({
+    gameId: 'color-find',
+    gameTitle: '색깔 찾기',
+    difficulty: currentDifficulty,
+    thumbnail: '/thumbnails/color-find.svg',
+    timeSeconds: finalTime,
+    currentBest,
+    isBest,
+    details: [
+      `오답 ${wrongCount}회`,
+      `오답 패널티 +${penaltySeconds}초`,
     ],
+    onReplay: () => {
+      track('game_replay', { game_id: 'color-find', difficulty: currentDifficulty });
+      const app = document.getElementById('app');
+      app.innerHTML = '';
+      render(app, currentDifficulty);
+    },
+    onExit: () => {
+      track('game_exit', { game_id: 'color-find' });
+      location.hash = '#/games';
+    },
   });
 }
 

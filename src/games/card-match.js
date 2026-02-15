@@ -1,8 +1,8 @@
 import { renderHeader } from '../components/header.js';
-import { showModal } from '../components/modal.js';
+import { showGameResultModal } from '../components/game-result-modal.js';
 import { showToast } from '../components/toast.js';
 import { shuffle, getEncouragement, formatSeconds } from '../utils/helpers.js';
-import { recordPlay, getTotalPlays } from '../utils/state.js';
+import { recordTimedPlay, getTotalPlays } from '../utils/state.js';
 import { track } from '../utils/analytics.js';
 
 const EMOJI_POOL = ['🍎', '🍊', '🍋', '🍇', '🍓', '🌸', '🌻', '⭐', '🌈', '🎵', '🐶', '🐱', '🐸', '🦋', '🐢', '🐘'];
@@ -124,35 +124,39 @@ function showFeedback(msg, type) {
 
 function onWin() {
   stopTimer();
-  const elapsed = getElapsedSeconds();
-  const score = Math.max(100 - (moves - DIFFICULTY[currentDifficulty].pairs) * 5, 10);
-  recordPlay('card-match', currentDifficulty, score);
-  track('game_complete', { game_id: 'card-match', difficulty: currentDifficulty, score, elapsed_seconds: elapsed, total_plays: getTotalPlays() });
+  const finalTime = getElapsedSeconds();
+  const missCount = Math.max(0, moves - DIFFICULTY[currentDifficulty].pairs);
+  const { currentBest, isBest } = recordTimedPlay('card-match', currentDifficulty, finalTime);
+  track('game_complete', {
+    game_id: 'card-match',
+    difficulty: currentDifficulty,
+    score: finalTime,
+    mismatch_count: missCount,
+    total_plays: getTotalPlays(),
+  });
 
-  showModal({
-    icon: '🎉',
-    title: '완료!',
-    message: `${moves}번 만에 모든 짝을 찾았어요!\n시간: ${formatSeconds(elapsed)}\n점수: ${score}점`,
-    buttons: [
-      {
-        label: '다시 하기',
-        class: 'btn-primary',
-        action: () => {
-          track('game_replay', { game_id: 'card-match', difficulty: currentDifficulty });
-          const app = document.getElementById('app');
-          app.innerHTML = '';
-          render(app, currentDifficulty);
-        },
-      },
-      {
-        label: '다른 게임 하기',
-        class: 'btn-secondary',
-        action: () => {
-          track('game_exit', { game_id: 'card-match' });
-          location.hash = '#/games';
-        },
-      },
+  showGameResultModal({
+    gameId: 'card-match',
+    gameTitle: '카드 짝 맞추기',
+    difficulty: currentDifficulty,
+    thumbnail: '/thumbnails/card-match.svg',
+    timeSeconds: finalTime,
+    currentBest,
+    isBest,
+    details: [
+      `시도 ${moves}회`,
+      `미스매치 ${missCount}회`,
     ],
+    onReplay: () => {
+      track('game_replay', { game_id: 'card-match', difficulty: currentDifficulty });
+      const app = document.getElementById('app');
+      app.innerHTML = '';
+      render(app, currentDifficulty);
+    },
+    onExit: () => {
+      track('game_exit', { game_id: 'card-match' });
+      location.hash = '#/games';
+    },
   });
 }
 

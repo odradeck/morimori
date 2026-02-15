@@ -290,9 +290,11 @@ a {
   position: relative;
   background: var(--color-surface);
   border-radius: var(--radius-lg);
-  padding: var(--spacing-2xl);
+  padding: var(--spacing-xl);
   max-width: 420px;
   width: 100%;
+  max-height: min(92dvh, 760px);
+  overflow-y: auto;
   text-align: center;
   box-shadow: var(--shadow-lg);
   animation: slideUp 0.3s ease;
@@ -327,7 +329,7 @@ a {
 .modal-thumbnail {
   width: 100%;
   max-width: 320px;
-  height: 144px;
+  height: 132px;
   object-fit: cover;
   border-radius: var(--radius-md);
   border: 2px solid #EFE7DD;
@@ -341,16 +343,22 @@ a {
 }
 
 .modal-message {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-base);
   color: var(--color-text-light);
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
   line-height: 1.5;
+  white-space: pre-line;
 }
 
 .modal-actions {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
+}
+
+.modal-actions .btn {
+  min-height: 54px;
+  font-size: var(--font-size-base);
 }
 
 /* === Toast === */
@@ -542,5 +550,24 @@ a {
 
   #app {
     padding: var(--spacing-sm);
+  }
+
+  .modal {
+    padding: var(--spacing-lg);
+    max-height: min(94dvh, 760px);
+  }
+
+  .modal-thumbnail {
+    height: 112px;
+    margin-top: 4px;
+  }
+
+  .modal-title {
+    font-size: var(--font-size-xl);
+  }
+
+  .modal-message {
+    font-size: var(--font-size-sm);
+    line-height: 1.45;
   }
 }
