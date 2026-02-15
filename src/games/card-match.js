@@ -22,6 +22,7 @@ let locked = false;
 let startTime = 0;
 let timerInterval = null;
 let pendingTimeouts = [];
+let gameCompleted = false;
 
 export function render(container, difficulty = 'easy') {
   cleanup();
@@ -31,6 +32,7 @@ export function render(container, difficulty = 'easy') {
   flipped = [];
   locked = false;
   startTime = Date.now();
+  gameCompleted = false;
 
   renderHeader(container, '카드 짝 맞추기', '#/games');
 
@@ -126,12 +128,15 @@ function onWin() {
   stopTimer();
   const finalTime = getElapsedSeconds();
   const missCount = Math.max(0, moves - DIFFICULTY[currentDifficulty].pairs);
+  gameCompleted = true;
   const { currentBest, isBest } = recordTimedPlay('card-match', currentDifficulty, finalTime);
   track('game_complete', {
     game_id: 'card-match',
     difficulty: currentDifficulty,
-    score: finalTime,
+    time_seconds: finalTime,
     mismatch_count: missCount,
+    move_count: moves,
+    is_best_record: isBest,
     total_plays: getTotalPlays(),
   });
 
@@ -147,6 +152,10 @@ function onWin() {
       `시도 ${moves}회`,
       `미스매치 ${missCount}회`,
     ],
+    metrics: {
+      move_count: moves,
+      mismatch_count: missCount,
+    },
     onReplay: () => {
       track('game_replay', { game_id: 'card-match', difficulty: currentDifficulty });
       const app = document.getElementById('app');
@@ -199,6 +208,18 @@ function clearPendingTimeouts() {
 }
 
 export function cleanup() {
+  if (!gameCompleted && startTime) {
+    track('game_abandon', {
+      game_id: 'card-match',
+      difficulty: currentDifficulty,
+      elapsed_seconds: getElapsedSeconds(),
+      move_count: moves,
+      matched_pairs: Math.floor(matched.length / 2),
+      reason: 'navigation',
+    });
+  }
   stopTimer();
   clearPendingTimeouts();
+  startTime = 0;
+  gameCompleted = false;
 }

@@ -127,7 +127,7 @@ export async function shareGameResult({
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(url);
     }
-    return { shared: false, fallback: true };
+    return { shared: false, fallback: true, sharePayload: 'url_clipboard' };
   }
 
   const imageBlob = await buildResultImage({ gameTitle, thumbnail, difficulty, timeSeconds, details, encouragement });
@@ -135,9 +135,9 @@ export async function shareGameResult({
 
   if (imageFile && navigator.canShare?.({ files: [imageFile] })) {
     await navigator.share({ url, files: [imageFile] });
+    return { shared: true, fallback: false, sharePayload: 'image_url' };
   } else {
     await navigator.share({ url });
+    return { shared: true, fallback: false, sharePayload: 'url_only' };
   }
-
-  return { shared: true, fallback: false };
 }

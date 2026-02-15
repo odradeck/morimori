@@ -15,6 +15,8 @@ const GAMES = {
 };
 
 let currentCleanup = null;
+let currentScreenName = null;
+let screenEnteredAt = 0;
 
 function getApp() {
   return document.getElementById('app');
@@ -23,6 +25,15 @@ function getApp() {
 function navigate() {
   const hash = location.hash || '#/';
   const app = getApp();
+  const nextScreenName = resolveScreenName(hash);
+
+  if (currentScreenName && screenEnteredAt > 0) {
+    track('screen_exit', {
+      screen_name: currentScreenName,
+      next_screen: nextScreenName,
+      duration_ms: Date.now() - screenEnteredAt,
+    });
+  }
 
   // Clean up previous screen
   if (currentCleanup) {
@@ -36,10 +47,12 @@ function navigate() {
     track('screen_view', { screen_name: 'home' });
     home.render(app);
     currentCleanup = home.cleanup;
+    setCurrentScreen('home');
   } else if (hash === '#/games') {
     track('screen_view', { screen_name: 'game_select' });
     gameSelect.render(app);
     currentCleanup = gameSelect.cleanup;
+    setCurrentScreen('game_select');
   } else if (hash.startsWith('#/play/')) {
     const playPath = hash.replace('#/play/', '');
     const [gameId, difficultyRaw] = playPath.split('/');
@@ -49,6 +62,7 @@ function navigate() {
       track('screen_view', { screen_name: `play_${gameId}` });
       gameModule.render(app, difficulty);
       currentCleanup = gameModule.cleanup;
+      setCurrentScreen(`play_${gameId}`);
     } else {
       app.innerHTML = `
         <div class="home-screen">
@@ -59,11 +73,28 @@ function navigate() {
           </button>
         </div>
       `;
+      setCurrentScreen('not_found');
     }
   } else {
     // Default: go home
     location.hash = '#/';
   }
+}
+
+function setCurrentScreen(screenName) {
+  currentScreenName = screenName;
+  screenEnteredAt = Date.now();
+}
+
+function resolveScreenName(hash) {
+  if (hash === '#/' || hash === '' || hash === '#') return 'home';
+  if (hash === '#/games') return 'game_select';
+  if (hash.startsWith('#/play/')) {
+    const playPath = hash.replace('#/play/', '');
+    const [gameId] = playPath.split('/');
+    return `play_${gameId}`;
+  }
+  return 'unknown';
 }
 
 // Initialize analytics

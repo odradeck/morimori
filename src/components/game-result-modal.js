@@ -2,6 +2,7 @@ import { showModal } from './modal.js';
 import { showToast } from './toast.js';
 import { formatSeconds, randomPick } from '../utils/helpers.js';
 import { shareGameResult } from '../utils/share-result.js';
+import { track } from '../utils/analytics.js';
 
 const BEST_MESSAGES = [
   '이 정도면 정말 어려운 단계도 충분히 해낼 수 있어요.',
@@ -36,6 +37,7 @@ export function showGameResultModal({
   currentBest,
   isBest,
   details,
+  metrics = {},
   onReplay,
   onExit,
 }) {
@@ -52,6 +54,14 @@ export function showGameResultModal({
     encouragement,
   ].join('\n');
 
+  track('result_view', {
+    game_id: gameId,
+    difficulty,
+    time_seconds: timeSeconds,
+    is_best_record: isBest,
+    ...metrics,
+  });
+
   showModal({
     thumbnail,
     title: formatSeconds(timeSeconds),
@@ -62,6 +72,8 @@ export function showGameResultModal({
         class: 'btn-primary',
         closeOnClick: false,
         action: async () => {
+          track('result_cta_click', { game_id: gameId, difficulty, cta: 'share' });
+          track('result_share_open', { game_id: gameId, difficulty, time_seconds: timeSeconds });
           try {
             const result = await shareGameResult({
               gameId,
@@ -75,8 +87,20 @@ export function showGameResultModal({
             if (result.fallback) {
               showToast('공유 기능이 없어 링크를 복사했어요.', 'info', 1200);
             }
+            track('result_share_success', {
+              game_id: gameId,
+              difficulty,
+              share_payload: result.sharePayload || 'unknown',
+            });
           } catch (err) {
-            if (err?.name !== 'AbortError') {
+            if (err?.name === 'AbortError') {
+              track('result_share_cancel', { game_id: gameId, difficulty });
+            } else {
+              track('result_share_error', {
+                game_id: gameId,
+                difficulty,
+                error_type: err?.name || 'unknown_error',
+              });
               showToast('공유를 열지 못했어요. 다시 시도해 주세요.', 'error', 1200);
             }
           }
@@ -85,12 +109,18 @@ export function showGameResultModal({
       {
         label: '다시 하기',
         class: 'btn-secondary',
-        action: onReplay,
+        action: () => {
+          track('result_cta_click', { game_id: gameId, difficulty, cta: 'replay' });
+          onReplay();
+        },
       },
       {
         label: '다른 게임 하기',
         class: 'btn-secondary',
-        action: onExit,
+        action: () => {
+          track('result_cta_click', { game_id: gameId, difficulty, cta: 'game_select' });
+          onExit();
+        },
       },
     ],
   });

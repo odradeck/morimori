@@ -24,6 +24,7 @@ let roundResolved = false;
 let inputLocked = false;
 const WRONG_PENALTY_SECONDS = 3;
 let pendingTimeouts = [];
+let gameCompleted = false;
 
 export function render(container, difficulty = 'easy') {
   cleanup();
@@ -36,6 +37,7 @@ export function render(container, difficulty = 'easy') {
   startTime = Date.now();
   roundResolved = false;
   inputLocked = false;
+  gameCompleted = false;
 
   renderHeader(container, '암산 챌린지', '#/games');
 
@@ -200,8 +202,17 @@ function showFeedback(msg, type) {
 function onFinish() {
   stopTimer();
   const finalTime = getElapsedSeconds();
+  gameCompleted = true;
   const { currentBest, isBest } = recordTimedPlay('math-challenge', currentDifficulty, finalTime);
-  track('game_complete', { game_id: 'math-challenge', difficulty: currentDifficulty, score: finalTime, total_plays: getTotalPlays() });
+  track('game_complete', {
+    game_id: 'math-challenge',
+    difficulty: currentDifficulty,
+    time_seconds: finalTime,
+    wrong_count: wrongCount,
+    penalty_seconds: penaltySeconds,
+    is_best_record: isBest,
+    total_plays: getTotalPlays(),
+  });
 
   showGameResultModal({
     gameId: 'math-challenge',
@@ -215,6 +226,10 @@ function onFinish() {
       `오답 ${wrongCount}회`,
       `오답 패널티 +${penaltySeconds}초`,
     ],
+    metrics: {
+      wrong_count: wrongCount,
+      penalty_seconds: penaltySeconds,
+    },
     onReplay: () => {
       track('game_replay', { game_id: 'math-challenge', difficulty: currentDifficulty });
       const app = document.getElementById('app');
@@ -260,6 +275,17 @@ function clearPendingTimeouts() {
 }
 
 export function cleanup() {
+  if (!gameCompleted && startTime) {
+    track('game_abandon', {
+      game_id: 'math-challenge',
+      difficulty: currentDifficulty,
+      elapsed_seconds: getElapsedSeconds(),
+      current_round: Math.min(round, totalRounds),
+      reason: 'navigation',
+    });
+  }
   stopTimer();
   clearPendingTimeouts();
+  startTime = 0;
+  gameCompleted = false;
 }
