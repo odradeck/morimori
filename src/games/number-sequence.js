@@ -1,7 +1,8 @@
 import { renderHeader } from '../components/header.js';
 import { showModal } from '../components/modal.js';
-import { shuffle, randInt, getEncouragement, getRetryMessage } from '../utils/helpers.js';
-import { recordPlay, getTotalPlays } from '../utils/state.js';
+import { showToast } from '../components/toast.js';
+import { shuffle, randInt, getEncouragement, getRetryMessage, formatSeconds } from '../utils/helpers.js';
+import { recordTimedPlay, getTotalPlays } from '../utils/state.js';
 import { track } from '../utils/analytics.js';
 
 const DIFFICULTY_CONFIG = {
@@ -12,36 +13,31 @@ const DIFFICULTY_CONFIG = {
 
 let currentDifficulty = 'easy';
 let round = 0;
-let score = 0;
 let totalRounds = 5;
+let wrongCount = 0;
+let penaltySeconds = 0;
+let startTime = 0;
+let timerInterval = null;
+const WRONG_PENALTY_SECONDS = 5;
+let activeRound = null;
+let pendingTimeouts = [];
 
 export function render(container, difficulty = 'easy') {
+  cleanup();
   currentDifficulty = difficulty;
   round = 0;
-  score = 0;
   totalRounds = DIFFICULTY_CONFIG[difficulty].rounds;
+  wrongCount = 0;
+  penaltySeconds = 0;
+  startTime = Date.now();
+  activeRound = null;
 
   renderHeader(container, '숫자 잇기', '#/games');
 
   track('game_start', { game_id: 'number-sequence', difficulty: currentDifficulty });
 
-  const diffWrap = document.createElement('div');
-  diffWrap.className = 'difficulty-selector';
-  ['easy', 'normal', 'hard'].forEach(d => {
-    const btn = document.createElement('button');
-    btn.className = `difficulty-btn ${d === currentDifficulty ? 'active' : ''}`;
-    btn.textContent = d === 'easy' ? '쉬움' : d === 'normal' ? '보통' : '어려움';
-    btn.addEventListener('click', () => {
-      track('difficulty_change', { game_id: 'number-sequence', difficulty: d });
-      container.innerHTML = '';
-      render(container, d);
-    });
-    diffWrap.appendChild(btn);
-  });
-  container.appendChild(diffWrap);
-
   const status = document.createElement('div');
-  status.className = 'game-status';
+  status.className = 'game-status game-status-timer';
   status.id = 'seq-status';
   container.appendChild(status);
 
@@ -50,11 +46,7 @@ export function render(container, difficulty = 'easy') {
   content.id = 'seq-content';
   container.appendChild(content);
 
-  const feedback = document.createElement('div');
-  feedback.className = 'game-feedback';
-  feedback.id = 'seq-feedback';
-  container.appendChild(feedback);
-
+  startTimer();
   nextRound();
 }
 
@@ -106,8 +98,15 @@ function nextRound() {
     return;
   }
 
-  updateStatus();
   const { sequence, blankPos, answer, options } = generateSequence();
+  activeRound = { sequence, blankPos, answer, options };
+  updateStatus();
+  renderRound();
+}
+
+function renderRound() {
+  if (!activeRound) return;
+  const { sequence, blankPos, answer, options } = activeRound;
 
   const content = document.getElementById('seq-content');
   content.innerHTML = '';
@@ -145,10 +144,8 @@ function nextRound() {
 
 function handleAnswer(selected, answer, optionsEl) {
   const buttons = optionsEl.querySelectorAll('.answer-btn');
-  buttons.forEach(b => { b.disabled = true; });
-
   if (selected === answer) {
-    score++;
+    buttons.forEach(b => { b.disabled = true; });
     buttons.forEach(b => {
       if (parseInt(b.textContent) === answer) b.classList.add('correct');
     });
@@ -159,43 +156,51 @@ function handleAnswer(selected, answer, optionsEl) {
       blank.classList.add('animate-pop');
     }
     showFeedback(getEncouragement(), 'success');
+    queueTimeout(nextRound, 800);
   } else {
+    wrongCount++;
+    penaltySeconds += WRONG_PENALTY_SECONDS;
+    updateStatus();
     buttons.forEach(b => {
-      if (parseInt(b.textContent) === selected) b.classList.add('wrong');
-      if (parseInt(b.textContent) === answer) b.classList.add('correct');
+      const value = parseInt(b.textContent, 10);
+      if (value === selected) b.classList.add('wrong');
+      b.disabled = true;
     });
-    showFeedback(getRetryMessage(), 'error');
+    showFeedback(`${getRetryMessage()} +${WRONG_PENALTY_SECONDS}초`, 'error');
+    queueTimeout(() => renderRound(), 650);
   }
-
-  setTimeout(nextRound, 1200);
 }
 
 function updateStatus() {
   const status = document.getElementById('seq-status');
   if (status) {
+    const elapsed = getElapsedSeconds();
     status.innerHTML = `
       <span>문제: <strong>${round}/${totalRounds}</strong></span>
-      <span>점수: <strong>${score}</strong></span>
+      <span class="timer-main">시간: <strong>${formatSeconds(elapsed)}</strong></span>
+      <span>오답: <strong>${wrongCount}</strong></span>
     `;
   }
 }
 
 function showFeedback(msg, type) {
-  const fb = document.getElementById('seq-feedback');
-  if (!fb) return;
-  fb.innerHTML = `<div class="feedback feedback-${type}">${msg}</div>`;
-  setTimeout(() => { if (fb) fb.innerHTML = ''; }, 1000);
+  showToast(msg, type, 850);
 }
 
 function onFinish() {
-  const finalScore = Math.round((score / totalRounds) * 100);
-  recordPlay('number-sequence', currentDifficulty, finalScore);
-  track('game_complete', { game_id: 'number-sequence', difficulty: currentDifficulty, score: finalScore, total_plays: getTotalPlays() });
+  stopTimer();
+  const finalTime = getElapsedSeconds();
+  const { currentBest, isBest } = recordTimedPlay('number-sequence', currentDifficulty, finalTime);
+  track('game_complete', { game_id: 'number-sequence', difficulty: currentDifficulty, score: finalTime, total_plays: getTotalPlays() });
+
+  const pbMessage = isBest
+    ? '신기록을 달성했어요!'
+    : `개인 최고기록까지 ${formatSeconds(finalTime - currentBest)} 남았어요.`;
 
   showModal({
-    icon: score === totalRounds ? '🏆' : '⭐',
+    icon: isBest ? '🏆' : '⭐',
     title: '게임 완료!',
-    message: `${totalRounds}문제 중 ${score}문제 정답!\n점수: ${finalScore}점`,
+    message: `최종 시간: ${formatSeconds(finalTime)}\n오답 ${wrongCount}회 (패널티 +${penaltySeconds}초)\n${pbMessage}`,
     buttons: [
       {
         label: '다시 하기',
@@ -219,4 +224,38 @@ function onFinish() {
   });
 }
 
-export function cleanup() {}
+function getElapsedSeconds() {
+  if (!startTime) return penaltySeconds;
+  const baseSeconds = Math.floor((Date.now() - startTime) / 1000);
+  return baseSeconds + penaltySeconds;
+}
+
+function startTimer() {
+  stopTimer();
+  timerInterval = setInterval(updateStatus, 250);
+}
+
+function stopTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
+
+function queueTimeout(fn, ms) {
+  const id = setTimeout(() => {
+    pendingTimeouts = pendingTimeouts.filter(timeoutId => timeoutId !== id);
+    fn();
+  }, ms);
+  pendingTimeouts.push(id);
+}
+
+function clearPendingTimeouts() {
+  pendingTimeouts.forEach(clearTimeout);
+  pendingTimeouts = [];
+}
+
+export function cleanup() {
+  stopTimer();
+  clearPendingTimeouts();
+}

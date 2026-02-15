@@ -168,18 +168,25 @@
 /* === Math Challenge Game === */
 .math-problem {
   text-align: center;
-  padding: var(--spacing-2xl);
+  padding: var(--spacing-lg);
   background: var(--color-surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+}
+
+.math-expression-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
 }
 
 .math-expression {
-  font-size: var(--font-size-3xl);
+  font-size: var(--font-size-2xl);
   font-weight: 800;
   color: var(--color-text);
-  margin-bottom: var(--spacing-md);
 }
 
 .math-equals {
@@ -187,29 +194,18 @@
   color: var(--color-text-light);
 }
 
-.math-input-wrap {
-  display: flex;
+.math-inline-input {
+  min-width: 92px;
+  height: 52px;
+  padding: 0 var(--spacing-sm);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
-}
-
-.math-input {
-  width: 150px;
-  height: 70px;
-  font-size: var(--font-size-2xl);
+  font-size: var(--font-size-xl);
   font-weight: 700;
-  text-align: center;
   border: 3px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
-  transition: border-color var(--transition);
-}
-
-.math-input:focus {
-  outline: none;
-  border-color: var(--color-coral);
 }
 
 /* Numpad for mobile */
@@ -217,13 +213,13 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-sm);
-  max-width: 320px;
+  max-width: 300px;
   margin: 0 auto;
 }
 
 .numpad-btn {
-  height: 64px;
-  font-size: var(--font-size-xl);
+  height: 58px;
+  font-size: var(--font-size-lg);
   font-weight: 700;
   border-radius: var(--radius-md);
   background: var(--color-surface);
@@ -459,6 +455,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--color-surface);
   border-radius: var(--radius-md);
@@ -466,6 +464,12 @@
   margin-bottom: var(--spacing-md);
   font-size: var(--font-size-base);
   font-weight: 600;
+}
+
+.game-status-timer .timer-main {
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+  color: var(--color-coral);
 }
 
 .game-content {

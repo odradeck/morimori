@@ -1,6 +1,7 @@
 import { renderHeader } from '../components/header.js';
 import { showModal } from '../components/modal.js';
-import { shuffle, getEncouragement } from '../utils/helpers.js';
+import { showToast } from '../components/toast.js';
+import { shuffle, getEncouragement, formatSeconds } from '../utils/helpers.js';
 import { recordPlay, getTotalPlays } from '../utils/state.js';
 import { track } from '../utils/analytics.js';
 
@@ -18,40 +19,30 @@ let flipped = [];
 let matched = [];
 let moves = 0;
 let locked = false;
-let cleanupFn = null;
+let startTime = 0;
+let timerInterval = null;
+let pendingTimeouts = [];
 
 export function render(container, difficulty = 'easy') {
+  cleanup();
   currentDifficulty = difficulty;
   moves = 0;
   matched = [];
   flipped = [];
   locked = false;
+  startTime = Date.now();
 
   renderHeader(container, '카드 짝 맞추기', '#/games');
 
   track('game_start', { game_id: 'card-match', difficulty: currentDifficulty });
 
-  // Difficulty selector
-  const diffWrap = document.createElement('div');
-  diffWrap.className = 'difficulty-selector';
-  ['easy', 'normal', 'hard'].forEach(d => {
-    const btn = document.createElement('button');
-    btn.className = `difficulty-btn ${d === currentDifficulty ? 'active' : ''}`;
-    btn.textContent = d === 'easy' ? '쉬움' : d === 'normal' ? '보통' : '어려움';
-    btn.addEventListener('click', () => {
-      track('difficulty_change', { game_id: 'card-match', difficulty: d });
-      container.innerHTML = '';
-      render(container, d);
-    });
-    diffWrap.appendChild(btn);
-  });
-  container.appendChild(diffWrap);
-
   // Status
   const status = document.createElement('div');
-  status.className = 'game-status';
+  status.className = 'game-status game-status-timer';
+  status.id = 'card-status';
   status.innerHTML = `
     <span>시도: <strong id="move-count">0</strong></span>
+    <span class="timer-main">시간: <strong id="card-timer">00:00</strong></span>
     <span>남은 짝: <strong id="remaining">${DIFFICULTY[currentDifficulty].pairs}</strong></span>
   `;
   container.appendChild(status);
@@ -75,13 +66,7 @@ export function render(container, difficulty = 'easy') {
 
   container.appendChild(grid);
 
-  // Feedback area
-  const feedback = document.createElement('div');
-  feedback.className = 'game-feedback';
-  feedback.id = 'card-feedback';
-  container.appendChild(feedback);
-
-  cleanupFn = null;
+  startTimer();
 }
 
 function handleCardClick(cardEl, index) {
@@ -116,11 +101,11 @@ function handleCardClick(cardEl, index) {
 
       // Check win
       if (matched.length === cards.length) {
-        setTimeout(() => onWin(), 500);
+        queueTimeout(() => onWin(), 500);
       }
     } else {
       // No match - flip back
-      setTimeout(() => {
+      queueTimeout(() => {
         const allCards = document.querySelectorAll('.game-card');
         allCards[i1].className = 'game-card game-card-hidden';
         allCards[i1].textContent = '';
@@ -134,21 +119,20 @@ function handleCardClick(cardEl, index) {
 }
 
 function showFeedback(msg, type) {
-  const fb = document.getElementById('card-feedback');
-  if (!fb) return;
-  fb.innerHTML = `<div class="feedback feedback-${type}">${msg}</div>`;
-  setTimeout(() => { if (fb) fb.innerHTML = ''; }, 1500);
+  showToast(msg, type, 900);
 }
 
 function onWin() {
+  stopTimer();
+  const elapsed = getElapsedSeconds();
   const score = Math.max(100 - (moves - DIFFICULTY[currentDifficulty].pairs) * 5, 10);
   recordPlay('card-match', currentDifficulty, score);
-  track('game_complete', { game_id: 'card-match', difficulty: currentDifficulty, score, total_plays: getTotalPlays() });
+  track('game_complete', { game_id: 'card-match', difficulty: currentDifficulty, score, elapsed_seconds: elapsed, total_plays: getTotalPlays() });
 
   showModal({
     icon: '🎉',
     title: '완료!',
-    message: `${moves}번 만에 모든 짝을 찾았어요!\n점수: ${score}점`,
+    message: `${moves}번 만에 모든 짝을 찾았어요!\n시간: ${formatSeconds(elapsed)}\n점수: ${score}점`,
     buttons: [
       {
         label: '다시 하기',
@@ -172,6 +156,45 @@ function onWin() {
   });
 }
 
+function getElapsedSeconds() {
+  if (!startTime) return 0;
+  return Math.floor((Date.now() - startTime) / 1000);
+}
+
+function updateTimer() {
+  const timerEl = document.getElementById('card-timer');
+  if (timerEl) {
+    timerEl.textContent = formatSeconds(getElapsedSeconds());
+  }
+}
+
+function startTimer() {
+  stopTimer();
+  updateTimer();
+  timerInterval = setInterval(updateTimer, 250);
+}
+
+function stopTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
+
+function queueTimeout(fn, ms) {
+  const id = setTimeout(() => {
+    pendingTimeouts = pendingTimeouts.filter(timeoutId => timeoutId !== id);
+    fn();
+  }, ms);
+  pendingTimeouts.push(id);
+}
+
+function clearPendingTimeouts() {
+  pendingTimeouts.forEach(clearTimeout);
+  pendingTimeouts = [];
+}
+
 export function cleanup() {
-  if (cleanupFn) cleanupFn();
+  stopTimer();
+  clearPendingTimeouts();
 }

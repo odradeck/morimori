@@ -4,7 +4,6 @@ import * as cardMatch from './games/card-match.js';
 import * as numberSequence from './games/number-sequence.js';
 import * as colorFind from './games/color-find.js';
 import * as mathChallenge from './games/math-challenge.js';
-import * as wordChain from './games/word-chain.js';
 import { initAnalytics, track } from './utils/analytics.js';
 import { getTotalPlays } from './utils/state.js';
 
@@ -13,7 +12,6 @@ const GAMES = {
   'number-sequence': numberSequence,
   'color-find': colorFind,
   'math-challenge': mathChallenge,
-  'word-chain': wordChain,
 };
 
 let currentCleanup = null;
@@ -43,11 +41,13 @@ function navigate() {
     gameSelect.render(app);
     currentCleanup = gameSelect.cleanup;
   } else if (hash.startsWith('#/play/')) {
-    const gameId = hash.replace('#/play/', '');
+    const playPath = hash.replace('#/play/', '');
+    const [gameId, difficultyRaw] = playPath.split('/');
+    const difficulty = ['easy', 'normal', 'hard'].includes(difficultyRaw) ? difficultyRaw : 'easy';
     const gameModule = GAMES[gameId];
     if (gameModule) {
       track('screen_view', { screen_name: `play_${gameId}` });
-      gameModule.render(app);
+      gameModule.render(app, difficulty);
       currentCleanup = gameModule.cleanup;
     } else {
       app.innerHTML = `

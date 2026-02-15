@@ -47,3 +47,11 @@ export function getRetryMessage() {
 export function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+/** Format seconds into mm:ss */
+export function formatSeconds(totalSeconds) {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}

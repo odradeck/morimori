@@ -1,7 +1,8 @@
 import { renderHeader } from '../components/header.js';
 import { showModal } from '../components/modal.js';
-import { randInt, getEncouragement, getRetryMessage } from '../utils/helpers.js';
-import { recordPlay, getTotalPlays } from '../utils/state.js';
+import { showToast } from '../components/toast.js';
+import { randInt, getEncouragement, getRetryMessage, formatSeconds } from '../utils/helpers.js';
+import { recordTimedPlay, getTotalPlays } from '../utils/state.js';
 import { track } from '../utils/analytics.js';
 
 const DIFFICULTY_CONFIG = {
@@ -12,39 +13,36 @@ const DIFFICULTY_CONFIG = {
 
 let currentDifficulty = 'easy';
 let round = 0;
-let score = 0;
 let totalRounds = 5;
 let currentAnswer = 0;
 let inputValue = '';
+let wrongCount = 0;
+let penaltySeconds = 0;
+let startTime = 0;
+let timerInterval = null;
+let roundResolved = false;
+let inputLocked = false;
+const WRONG_PENALTY_SECONDS = 3;
+let pendingTimeouts = [];
 
 export function render(container, difficulty = 'easy') {
+  cleanup();
   currentDifficulty = difficulty;
   round = 0;
-  score = 0;
   totalRounds = DIFFICULTY_CONFIG[difficulty].rounds;
   inputValue = '';
+  wrongCount = 0;
+  penaltySeconds = 0;
+  startTime = Date.now();
+  roundResolved = false;
+  inputLocked = false;
 
   renderHeader(container, '암산 챌린지', '#/games');
 
   track('game_start', { game_id: 'math-challenge', difficulty: currentDifficulty });
 
-  const diffWrap = document.createElement('div');
-  diffWrap.className = 'difficulty-selector';
-  ['easy', 'normal', 'hard'].forEach(d => {
-    const btn = document.createElement('button');
-    btn.className = `difficulty-btn ${d === currentDifficulty ? 'active' : ''}`;
-    btn.textContent = d === 'easy' ? '쉬움' : d === 'normal' ? '보통' : '어려움';
-    btn.addEventListener('click', () => {
-      track('difficulty_change', { game_id: 'math-challenge', difficulty: d });
-      container.innerHTML = '';
-      render(container, d);
-    });
-    diffWrap.appendChild(btn);
-  });
-  container.appendChild(diffWrap);
-
   const status = document.createElement('div');
-  status.className = 'game-status';
+  status.className = 'game-status game-status-timer';
   status.id = 'math-status';
   container.appendChild(status);
 
@@ -53,11 +51,7 @@ export function render(container, difficulty = 'easy') {
   content.id = 'math-content';
   container.appendChild(content);
 
-  const feedback = document.createElement('div');
-  feedback.className = 'game-feedback';
-  feedback.id = 'math-feedback';
-  container.appendChild(feedback);
-
+  startTimer();
   nextRound();
 }
 
@@ -88,6 +82,7 @@ function generateProblem() {
 function nextRound() {
   round++;
   inputValue = '';
+  roundResolved = false;
 
   if (round > totalRounds) {
     onFinish();
@@ -105,16 +100,13 @@ function nextRound() {
   const problem = document.createElement('div');
   problem.className = 'math-problem';
   problem.innerHTML = `
-    <div class="math-expression">${a} ${op} ${b}</div>
-    <div class="math-equals">= ?</div>
+    <div class="math-expression-inline">
+      <span class="math-expression">${a} ${op} ${b}</span>
+      <span class="math-equals">=</span>
+      <span class="math-inline-input" id="math-display">&nbsp;</span>
+    </div>
   `;
   content.appendChild(problem);
-
-  // Input display
-  const inputWrap = document.createElement('div');
-  inputWrap.className = 'math-input-wrap';
-  inputWrap.innerHTML = `<div class="math-input" id="math-display">&nbsp;</div>`;
-  content.appendChild(inputWrap);
 
   // Numpad
   const numpad = document.createElement('div');
@@ -139,12 +131,20 @@ function createNumpadBtn(label, onClick, extraClass = '') {
 }
 
 function appendDigit(d) {
-  if (inputValue.length >= 6) return;
+  if (roundResolved || inputLocked) return;
+
+  const maxDigits = String(currentAnswer).length;
+  if (inputValue.length >= maxDigits) return;
   inputValue += d;
   updateDisplay();
+
+  if (inputValue.length === maxDigits) {
+    submitAnswer();
+  }
 }
 
 function clearInput() {
+  if (inputLocked) return;
   inputValue = inputValue.slice(0, -1);
   updateDisplay();
 }
@@ -157,48 +157,60 @@ function updateDisplay() {
 }
 
 function submitAnswer() {
-  if (!inputValue) return;
+  if (!inputValue || roundResolved || inputLocked) return;
 
   const userAnswer = parseInt(inputValue, 10);
-  const numpadBtns = document.querySelectorAll('.numpad-btn');
-  numpadBtns.forEach(b => { b.disabled = true; });
 
   if (userAnswer === currentAnswer) {
-    score++;
+    roundResolved = true;
+    const numpadBtns = document.querySelectorAll('.numpad-btn');
+    numpadBtns.forEach(b => { b.disabled = true; });
     showFeedback(getEncouragement(), 'success');
+    queueTimeout(nextRound, 700);
   } else {
-    showFeedback(`정답은 ${currentAnswer}이에요. ${getRetryMessage()}`, 'error');
+    inputLocked = true;
+    wrongCount++;
+    penaltySeconds += WRONG_PENALTY_SECONDS;
+    updateStatus();
+    showFeedback(`${getRetryMessage()} +${WRONG_PENALTY_SECONDS}초`, 'error');
+    queueTimeout(() => {
+      inputValue = '';
+      updateDisplay();
+      inputLocked = false;
+    }, 450);
   }
-
-  setTimeout(nextRound, 1200);
 }
 
 function updateStatus() {
   const status = document.getElementById('math-status');
   if (status) {
+    const elapsed = getElapsedSeconds();
     status.innerHTML = `
       <span>문제: <strong>${round}/${totalRounds}</strong></span>
-      <span>점수: <strong>${score}</strong></span>
+      <span class="timer-main">시간: <strong>${formatSeconds(elapsed)}</strong></span>
+      <span>오답: <strong>${wrongCount}</strong></span>
     `;
   }
 }
 
 function showFeedback(msg, type) {
-  const fb = document.getElementById('math-feedback');
-  if (!fb) return;
-  fb.innerHTML = `<div class="feedback feedback-${type}">${msg}</div>`;
-  setTimeout(() => { if (fb) fb.innerHTML = ''; }, 1000);
+  showToast(msg, type, 850);
 }
 
 function onFinish() {
-  const finalScore = Math.round((score / totalRounds) * 100);
-  recordPlay('math-challenge', currentDifficulty, finalScore);
-  track('game_complete', { game_id: 'math-challenge', difficulty: currentDifficulty, score: finalScore, total_plays: getTotalPlays() });
+  stopTimer();
+  const finalTime = getElapsedSeconds();
+  const { currentBest, isBest } = recordTimedPlay('math-challenge', currentDifficulty, finalTime);
+  track('game_complete', { game_id: 'math-challenge', difficulty: currentDifficulty, score: finalTime, total_plays: getTotalPlays() });
+
+  const pbMessage = isBest
+    ? '신기록을 달성했어요!'
+    : `개인 최고기록까지 ${formatSeconds(finalTime - currentBest)} 남았어요.`;
 
   showModal({
-    icon: score === totalRounds ? '🏆' : '🧮',
+    icon: isBest ? '🏆' : '🧮',
     title: '게임 완료!',
-    message: `${totalRounds}문제 중 ${score}문제 정답!\n점수: ${finalScore}점`,
+    message: `최종 시간: ${formatSeconds(finalTime)}\n오답 ${wrongCount}회 (패널티 +${penaltySeconds}초)\n${pbMessage}`,
     buttons: [
       {
         label: '다시 하기',
@@ -222,4 +234,38 @@ function onFinish() {
   });
 }
 
-export function cleanup() {}
+function getElapsedSeconds() {
+  if (!startTime) return penaltySeconds;
+  const baseSeconds = Math.floor((Date.now() - startTime) / 1000);
+  return baseSeconds + penaltySeconds;
+}
+
+function startTimer() {
+  stopTimer();
+  timerInterval = setInterval(updateStatus, 250);
+}
+
+function stopTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
+
+function queueTimeout(fn, ms) {
+  const id = setTimeout(() => {
+    pendingTimeouts = pendingTimeouts.filter(timeoutId => timeoutId !== id);
+    fn();
+  }, ms);
+  pendingTimeouts.push(id);
+}
+
+function clearPendingTimeouts() {
+  pendingTimeouts.forEach(clearTimeout);
+  pendingTimeouts = [];
+}
+
+export function cleanup() {
+  stopTimer();
+  clearPendingTimeouts();
+}

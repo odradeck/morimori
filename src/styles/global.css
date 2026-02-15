@@ -260,6 +260,19 @@ a {
   flex: 1;
 }
 
+.header-no-back {
+  justify-content: center;
+}
+
+.header-centered .header-title {
+  text-align: center;
+  flex: 0 1 auto;
+}
+
+.header-compact {
+  margin-bottom: var(--spacing-sm);
+}
+
 /* === Modal === */
 .modal-overlay {
   position: fixed;
@@ -306,6 +319,55 @@ a {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
+}
+
+/* === Toast === */
+.toast-root {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 120;
+  pointer-events: none;
+}
+
+.app-toast {
+  min-width: 220px;
+  max-width: min(92vw, 520px);
+  padding: 10px 16px;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-md);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  border: 2px solid transparent;
+  background: var(--color-surface);
+}
+
+.app-toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.app-toast-success {
+  color: #2D7A3A;
+  border-color: #CFEED5;
+  background: #E8F8EA;
+}
+
+.app-toast-error {
+  color: #C44D4D;
+  border-color: #F7C5C5;
+  background: #FFE8E8;
+}
+
+.app-toast-info {
+  color: #4D6BC4;
+  border-color: #C9D8FF;
+  background: #E8F0FF;
 }
 
 /* === Difficulty Selector === */

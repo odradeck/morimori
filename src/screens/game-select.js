@@ -1,5 +1,7 @@
 import { renderHeader } from '../components/header.js';
+import { showModal } from '../components/modal.js';
 import { getGameStats } from '../utils/state.js';
+import { formatSeconds } from '../utils/helpers.js';
 import { track } from '../utils/analytics.js';
 
 const GAMES = [
@@ -35,24 +37,18 @@ const GAMES = [
     color: 'var(--color-orange)',
     area: '계산력',
   },
-  {
-    id: 'word-chain',
-    name: '끝말잇기',
-    desc: '컴퓨터와 끝말잇기 대결!',
-    icon: '💬',
-    color: 'var(--color-lavender)',
-    area: '언어력',
-  },
 ];
 
 export function render(container) {
-  renderHeader(container, '게임 선택', '#/');
+  renderHeader(container, '모리모리', undefined, { hideBack: true, center: true, compact: true });
 
   const list = document.createElement('div');
   list.className = 'game-list';
 
   GAMES.forEach(game => {
     const stats = getGameStats(game.id);
+    const bestTimeNormal = stats.bestTimes?.normal;
+    const bestTimeLabel = Number.isInteger(bestTimeNormal) ? `최고기록(보통): ${formatSeconds(bestTimeNormal)}` : '';
     const card = document.createElement('div');
     card.className = 'game-select-card';
     card.innerHTML = `
@@ -63,12 +59,13 @@ export function render(container) {
         <div class="game-name">${game.name}</div>
         <div class="game-desc">${game.desc}</div>
         ${stats.plays > 0 ? `<div class="text-sm" style="margin-top:4px">${stats.plays}회 플레이</div>` : ''}
+        ${bestTimeLabel ? `<div class="text-sm">${bestTimeLabel}</div>` : ''}
       </div>
       <div class="game-arrow">→</div>
     `;
     card.addEventListener('click', () => {
       track('game_select', { game_id: game.id, game_name: game.name });
-      location.hash = `#/play/${game.id}`;
+      showDifficultyPicker(game);
     });
     list.appendChild(card);
   });
@@ -77,3 +74,33 @@ export function render(container) {
 }
 
 export function cleanup() {}
+
+function showDifficultyPicker(game) {
+  showModal({
+    icon: game.icon,
+    title: game.name,
+    message: '난이도를 선택해 주세요.',
+    buttons: [
+      {
+        label: '쉬움',
+        class: 'btn-secondary',
+        action: () => startGame(game.id, 'easy'),
+      },
+      {
+        label: '보통',
+        class: 'btn-primary',
+        action: () => startGame(game.id, 'normal'),
+      },
+      {
+        label: '어려움',
+        class: 'btn-secondary',
+        action: () => startGame(game.id, 'hard'),
+      },
+    ],
+  });
+}
+
+function startGame(gameId, difficulty) {
+  track('difficulty_select', { game_id: gameId, difficulty });
+  location.hash = `#/play/${gameId}/${difficulty}`;
+}
