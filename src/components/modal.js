@@ -2,17 +2,20 @@
  * Show a modal dialog.
  * @param {Object} options
  * @param {string} options.icon - emoji icon
+ * @param {string} options.thumbnail - image path
  * @param {string} options.title
  * @param {string} options.message
  * @param {Array<{label: string, class?: string, action: Function}>} options.buttons
  * @returns {Function} close function
  */
-export function showModal({ icon, title, message, buttons = [] }) {
+export function showModal({ icon, thumbnail, title, message, buttons = [] }) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.innerHTML = `
     <div class="modal">
-      ${icon ? `<div class="modal-icon">${icon}</div>` : ''}
+      <button class="modal-close" aria-label="닫기">✕</button>
+      ${thumbnail ? `<img class="modal-thumbnail" src="${thumbnail}" alt="${title} 썸네일" />` : ''}
+      ${!thumbnail && icon ? `<div class="modal-icon">${icon}</div>` : ''}
       <div class="modal-title">${title}</div>
       <div class="modal-message">${message}</div>
       <div class="modal-actions"></div>
@@ -33,6 +36,11 @@ export function showModal({ icon, title, message, buttons = [] }) {
 
   function close() {
     overlay.remove();
+  }
+
+  const closeBtn = overlay.querySelector('.modal-close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', close);
   }
 
   // Close on overlay click (outside modal)
