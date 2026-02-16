@@ -87,7 +87,7 @@ function showDifficultyPicker(game) {
       },
       {
         label: '보통',
-        class: 'btn-primary',
+        class: 'btn-secondary',
         action: () => startGame(game.id, 'normal'),
       },
       {

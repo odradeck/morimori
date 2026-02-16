@@ -106,9 +106,11 @@
   transition: all var(--transition);
 }
 
-.answer-btn:hover {
-  border-color: var(--color-sky);
-  background: #F0F8FF;
+@media (hover: hover) and (pointer: fine) {
+  .answer-btn:hover {
+    border-color: var(--color-sky);
+    background: #F0F8FF;
+  }
 }
 
 .answer-btn:active {
@@ -227,8 +229,10 @@
   transition: all var(--transition);
 }
 
-.numpad-btn:hover {
-  background: #F0F4FF;
+@media (hover: hover) and (pointer: fine) {
+  .numpad-btn:hover {
+    background: #F0F4FF;
+  }
 }
 
 .numpad-btn:active {
@@ -242,8 +246,10 @@
   border-color: transparent;
 }
 
-.numpad-btn-submit:hover {
-  background: #ff7a55;
+@media (hover: hover) and (pointer: fine) {
+  .numpad-btn-submit:hover {
+    background: #ff7a55;
+  }
 }
 
 .numpad-btn-delete {

@@ -37,6 +37,7 @@ export function showGameResultModal({
   currentBest,
   isBest,
   details,
+  titleOverride,
   metrics = {},
   onReplay,
   onExit,
@@ -64,7 +65,7 @@ export function showGameResultModal({
 
   showModal({
     thumbnail,
-    title: formatSeconds(timeSeconds),
+    title: titleOverride || formatSeconds(timeSeconds),
     message,
     buttons: [
       {
@@ -82,7 +83,7 @@ export function showGameResultModal({
               timeSeconds,
               thumbnail,
               details,
-              encouragement,
+              metrics,
             });
             if (result.fallback) {
               showToast('공유 기능이 없어 링크를 복사했어요.', 'info', 1200);

@@ -82,6 +82,7 @@ function generateProblem() {
 }
 
 function nextRound() {
+  clearFocusedButton();
   round++;
   inputValue = '';
   roundResolved = false;
@@ -128,7 +129,10 @@ function createNumpadBtn(label, onClick, extraClass = '') {
   const btn = document.createElement('button');
   btn.className = `numpad-btn ${extraClass}`;
   btn.textContent = label;
-  btn.addEventListener('click', onClick);
+  btn.addEventListener('click', () => {
+    clearFocusedButton();
+    onClick();
+  });
   return btn;
 }
 
@@ -227,6 +231,7 @@ function onFinish() {
       `오답 패널티 +${penaltySeconds}초`,
     ],
     metrics: {
+      attempt_count: totalRounds + wrongCount,
       wrong_count: wrongCount,
       penalty_seconds: penaltySeconds,
     },
@@ -272,6 +277,13 @@ function queueTimeout(fn, ms) {
 function clearPendingTimeouts() {
   pendingTimeouts.forEach(clearTimeout);
   pendingTimeouts = [];
+}
+
+function clearFocusedButton() {
+  const active = document.activeElement;
+  if (active instanceof HTMLElement && active.tagName === 'BUTTON') {
+    active.blur();
+  }
 }
 
 export function cleanup() {

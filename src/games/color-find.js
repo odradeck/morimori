@@ -182,6 +182,7 @@ function onFinish() {
       `오답 패널티 +${penaltySeconds}초`,
     ],
     metrics: {
+      attempt_count: totalRounds + wrongCount,
       wrong_count: wrongCount,
       penalty_seconds: penaltySeconds,
     },

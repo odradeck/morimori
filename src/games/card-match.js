@@ -145,11 +145,12 @@ function onWin() {
     gameTitle: '카드 짝 맞추기',
     difficulty: currentDifficulty,
     thumbnail: '/thumbnails/card-match.svg',
+    titleOverride: `${moves}회만에 성공!`,
     timeSeconds: finalTime,
     currentBest,
     isBest,
     details: [
-      `시도 ${moves}회`,
+      `완료 시간 ${formatSeconds(finalTime)}`,
       `미스매치 ${missCount}회`,
     ],
     metrics: {

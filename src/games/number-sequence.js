@@ -108,6 +108,7 @@ function nextRound() {
 
 function renderRound() {
   if (!activeRound) return;
+  clearFocusedButton();
   const { sequence, blankPos, answer, options } = activeRound;
 
   const content = document.getElementById('seq-content');
@@ -145,6 +146,7 @@ function renderRound() {
 }
 
 function handleAnswer(selected, answer, optionsEl) {
+  clearFocusedButton();
   const buttons = optionsEl.querySelectorAll('.answer-btn');
   if (selected === answer) {
     buttons.forEach(b => { b.disabled = true; });
@@ -170,6 +172,13 @@ function handleAnswer(selected, answer, optionsEl) {
     });
     showFeedback(`${getRetryMessage()} +${WRONG_PENALTY_SECONDS}초`, 'error');
     queueTimeout(() => renderRound(), 650);
+  }
+}
+
+function clearFocusedButton() {
+  const active = document.activeElement;
+  if (active instanceof HTMLElement && active.tagName === 'BUTTON') {
+    active.blur();
   }
 }
 
@@ -217,6 +226,7 @@ function onFinish() {
       `오답 패널티 +${penaltySeconds}초`,
     ],
     metrics: {
+      attempt_count: totalRounds + wrongCount,
       wrong_count: wrongCount,
       penalty_seconds: penaltySeconds,
     },
